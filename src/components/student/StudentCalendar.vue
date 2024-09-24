@@ -1,89 +1,82 @@
 <template>
-    <div class="row d-md-flex justify-content-between nav-student">
-        <div class="col col-md-3 d-md-flex justify-content-start align-items-center">
-            <div class="img-avatar">
-                <img class="rounded-circle" :src="user.avatar" alt="my-avatar">
-            </div>
-            <div class="ms-2 d-flex flex-column align-items-center m-0">
-                <div class="font-weight-bold name-color">{{ user.name }}</div>
-                <div class="info-student">Học viên</div>
-                <div class="info-student">{{ user.email }}</div>
-            </div>
-        </div>
-        <div v-if="stateButtonFormStudent === true" class="col col-md-9 d-flex align-items-center p-0">
-            <form @submit.prevent="searchCalendar" class="row w-100">
-                <div class="col col-md-11 d-flex justify-content-evenly">
-                    <div>
-                        <div>
-                            <label class="font-weight-bold" for="course">Khóa học</label>
-                            <span class="error-message">{{ courseError }}</span>
-                        </div>
-                        <div>
-                            <select class="modify-select" name="course" v-model="course" @change="onCourseChange">
-                                <option :value="null" disabled selected hidden>Chọn Khóa học</option>
-                                    <option class="modify-option" v-for="course in listCourse"
-                                    :key="course.id"
-                                    :value="course"
-                                    >
-                                    {{ course.name }}
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <div>
-                            <label class="font-weight-bold" for="chapter">Chương</label>
-                            <span class="error-message">{{ chapterError }}</span>
-                        </div>
-                        <div>
-                            <select class="modify-select" name="chapter" v-model="chapter" @change="onChuongChange">
-                                <option :value="null" disabled selected hidden>Chọn chương</option>
-                                <option class="modify-option" v-for="chapter in listChapters"
-                                :key="chapter.id"
-                                :value="chapter"
-                                >
-                                {{ chapter.name }}
-                            </option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <div>
-                            <label class="font-weight-bold" for="teacher">Giảng viên</label>
-                            <span class="error-message">{{ teacherError }}</span>
-                        </div>
-                        <div>
-                            <select class="modify-select" name="teacher" v-model="teacher">
-                                <option :value="null" disabled selected hidden>Chọn giảng viên</option>
-                                <option class="modify-option" v-for="teacher in teachers" :key="teacher.Id" :value="teacher">
-                                    {{ teacher.OwnerText }}
-                                </option>
-                            </select>
+    <div class="student-calendar">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-3 mb-4">
+                    <div class="card student-info">
+                        <div class="card-body d-flex flex-column align-items-center">
+                            <img class="rounded-circle mb-3"
+                                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQuRDPL-ilJiALdTZrZuxx2V50RIvKMz34CBA&s"
+                                alt="Student avatar" width="100" height="100">
+                            <h5 class="card-title mb-1">{{ user?.name }}</h5>
+                            <p class="card-text text-muted mb-2">Học viên</p>
+                            <p class="card-text text-muted small mb-3">{{ user?.email }}</p>
+                            <button @click="toggleCalendarForm" :class="['btn', 'w-100', stateButtonFormStudent ? 'btn-danger' : 'btn-primary']">
+                                <i v-if="!stateButtonFormStudent" class="fas fa-plus me-2"></i>
+                                <i v-else class="fas fa-times me-2"></i>
+                                {{ stateButtonFormStudent ? 'Đóng form' : 'Tạo lịch' }}
+                            </button>
                         </div>
                     </div>
                 </div>
-                <div class="col col-md-1 d-flex justify-content-center align-items-center mt-4">
-                    <button type="submit" class="btn btn-primary border-0 modify-button" style="background-color: rgb(49, 210, 242) ">
-                        <span><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-funnel"
-                                viewBox="0 0 16 16">
-                                <path
-                                    d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z" />
-                            </svg> Lọc</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-        <div v-if="stateButtonFormStudent === false" class="col col-md-1 d-flex align-items-center justify-content-center">
-            <button @click="changeOfStateButtonStudent" class="btn btn-primary border-0 modify-button" style="background-color: rgb(49, 210, 242) ">
-                <span><i class="fas fa-plus"></i> Tạo lịch</span>
-            </button>
 
-            <!-- hienn calendar 2url khac nhau -->
-        </div>
-    </div>
-    <div v-if="stateButtonFormStudent === true" class="row">
-        <div class="col" style="margin-top: 60px;">
-            <Calendar :url="url" :id="idGV" :course="course" :chapter="chapter"/>
+                <div class="col-md-9">
+                    <div v-if="stateButtonFormStudent" class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">Tìm kiếm lịch</h5>
+                            <form @submit.prevent="searchCalendar" class="calendar-search-form">
+                                <div class="row g-3 align-items-end">
+                                    <div class="col-md-4">
+                                        <label class="form-label" for="course">Khóa học</label>
+                                        <select class="form-select" name="course" v-model="course" @change="onCourseChange">
+                                            <option :value="null" disabled selected hidden>Chọn Khóa học</option>
+                                            <option class="modify-option" v-for="course in listCourse" :key="course.id" :value="course">
+                                                {{ course.name }}
+                                            </option>
+                                        </select>
+                                        <small class="text-danger">{{ courseError }}</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label" for="chapter">Chương</label>
+                                        <select class="form-select" id="chapter" v-model="chapter" @change="onChuongChange">
+                                            <option :value="null" disabled selected hidden>Chọn chương</option>
+                                            <option class="modify-option" v-for="chapter in listChapters" :key="chapter.id" :value="chapter">
+                                                {{ chapter.name }}
+                                            </option>
+                                        </select>
+                                        <small class="text-danger">{{ chapterError }}</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label" for="teacher">Mentor</label>
+                                        <select class="form-select" id="teacher" v-model="teacher">
+                                            <option :value="null" disabled selected>Chọn giảng viên</option>
+                                            <option class="modify-option" v-for="teacher in teachers" :key="teacher.Id" :value="teacher">
+                                                {{ teacher.OwnerText }}
+                                            </option>
+                                        </select>
+                                        <small class="text-danger">{{ teacherError }}</small>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-filter"></i> &nbsp; Lọc
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">
+                                {{ !stateButtonFormStudent ? 'Lịch học' : 'Lịch giảng viên / Người hướng dẫn' }}
+                            </h5>
+                            <Calendar :url="stateButtonFormStudent ? url : urlCalendarOfStudent"
+                                :calendarType="stateButtonFormStudent ? 'other' : 'mine'" />
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -91,20 +84,18 @@
 <script setup>
 import axios from 'axios';
 import { useField, useForm } from 'vee-validate';
-import { onMounted } from 'vue';
-import { ref } from 'vue';
+import { onMounted, watch, ref, computed } from 'vue';
 import { toast } from 'vue3-toastify';
 import * as yup from 'yup';
 import Calendar from '../Calendar/Calendar.vue';
-
 import { useStore } from 'vuex';
-import { computed } from 'vue';
 
 const rootApi = process.env.VUE_APP_ROOT_API;
 const store = useStore();
 
 const stateButtonFormStudent = ref(false);
 const accessToken = localStorage.getItem("accessToken");
+
 const { handleSubmit, resetForm } = useForm({
     initialValues: {
         course: null,
@@ -127,37 +118,33 @@ const { handleSubmit, resetForm } = useForm({
 const { value: course, errorMessage: courseError } = useField('course');
 const { value: chapter, errorMessage: chapterError } = useField('chapter');
 const { value: teacher, errorMessage: teacherError } = useField('teacher');
-const teachers = ref([]);
 const url = ref("");
+const urlCalendarOfStudent = ref("");
+const teachers = ref([]);
 const idGV = ref();
 const listCourse = ref([]);
 const listChapters = ref([]);
 const user = computed(() => store.getters.user);
 
+const toggleCalendarForm = () => {
+    stateButtonFormStudent.value = !stateButtonFormStudent.value;
+
+    if (stateButtonFormStudent.value) {
+        // tạm thời để test, sau sẽ thay thế bằng lấy lịch của giảng viên và lọc
+        url.value = `${rootApi}/teacher/5bb75f1d-7956-11ef-8bc5-005056c00001/calendar`;
+    }
+};
 
 const getAllCalendars = () => {
-    url.value = `${rootApi}`;
-}
+    urlCalendarOfStudent.value = `${rootApi}/student/${user.value.id}/calendar`;
+};
 
-const getCourseByUserId = async() =>{
-    try {
-        const res = await axios.get(`${rootApi}/courses?id=${user.value.id}`,{
-            headers:{
-               'Authorization': `Bearer ${accessToken}`
-            }
-        });
-        listCourse.value = res.data.result.items;
-    }catch(err){
-        console.log(err);
-    }
-}
-
-const onCourseChange =async () =>{
+const onCourseChange = async () => {
     await getChapters();
     await getTeachers();
 }
 
-const getChapters = async() => {
+const getChapters = async () => {
     try {
         const res = await axios.get(`${rootApi}/chapters?idCourse=${course._value.id}`, {
             headers: {
@@ -170,27 +157,22 @@ const getChapters = async() => {
     }
 }
 
-
 const getTeachers = async () => {
     try {
-        const res = await axios.get(`${rootApi}/teachers/course/${course._value.id}`, {
+        const res = await axios.get(`${rootApi}/teachers/course/${course.value.id}`, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`
             }
         });
         teachers.value = res.data.result;
     } catch (error) {
-        console.log(error);
+        console.error("Error fetching teachers:", error);
+        toast.error("Không thể lấy danh sách giảng viên");
     }
-}
-
-const changeOfStateButtonStudent = () => {
-    stateButtonFormStudent.value = !stateButtonFormStudent.value;
-
-}
+};
 
 const searchCalendar = handleSubmit(async (formData) => {
-    
+
     try {
         const { course, chapter, teacher } = formData;
 
@@ -209,7 +191,6 @@ const searchCalendar = handleSubmit(async (formData) => {
         });
         if (res.status === 200) {
             resetForm();
-            idGV.value = res.data.result;
             getTeachers();
         }
     } catch (error) {
@@ -217,58 +198,101 @@ const searchCalendar = handleSubmit(async (formData) => {
     }
 });
 
+const fetchCoursesByUser = async () => {
+    try {
+        const res = await axios.get(`${rootApi}/courses`, {
+            params: { id: user.value.id, page: 1, pageSize: 10 },
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+
+        if (res.status === 200) {
+            listCourse.value = res.data.result.items;
+        } else {
+            console.error("Error fetching courses");
+            toast.error("Không thể lấy danh sách khóa học");
+        }
+    } catch (error) {
+        console.error("Error fetching courses:", error);
+        toast.error("Lỗi khi lấy danh sách khóa học");
+    }
+};
+
+const fetchChaptersByCourseId = async (courseId) => {
+    try {
+        const res = await axios.get(`${rootApi}/chapters`, {
+            params: { idCourse: courseId },
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+
+        if (res.status === 200) {
+            listChapters.value = res.data.result.listChapter;
+        } else {
+            console.error("Error fetching chapters");
+            toast.error("Không thể lấy danh sách chương");
+        }
+    } catch (error) {
+        console.error("Error fetching chapters:", error);
+        toast.error("Lỗi khi lấy danh sách chương");
+    }
+};
+
+watch(course, (newCourse) => {
+    if (newCourse) {
+        const selectedCourse = listCourse.value.find(c => c.name === newCourse);
+        if (selectedCourse) {
+            fetchChaptersByCourseId(selectedCourse.id);
+        }
+    }
+});
+
+watch(user, (newUser) => {
+    if (newUser) {
+        fetchCoursesByUser();
+    }
+}, { immediate: true });
+
 onMounted(() => {
-    getCourseByUserId();
-    // getTeachers();
-    getAllCalendars();
     if (!store.getters.isLoggedIn) {
         store.dispatch('fetchUser');
     }
+
+    watch(user, (newUser) => {
+        if (newUser) {
+            getAllCalendars();
+        }
+    }, { immediate: true });
 });
+
 </script>
 
 <style scoped>
-* {
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
+.student-info {
+    transition: all 0.3s ease;
 }
 
-.img-avatar img {
-    width: 75px;
-    height: 75px;
+.student-info:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-.modify-button {
-    padding: 6px 12px;
+.btn-primary {
+    background-color: #31D2F2;
+    border-color: #31D2F2;
 }
 
-.name-color {
-    color: #6B7A99;
+.btn-primary:hover {
+    background-color: #28b8d8;
+    border-color: #28b8d8;
 }
 
-.info-student {
-    color: var(--text-color);
-    font-size: 13px;
+.form-select:focus,
+.form-control:focus {
+    border-color: #31D2F2;
+    box-shadow: 0 0 0 0.2rem rgba(49, 210, 242, 0.25);
 }
 
-.modify-select {
-    border-radius: 8px;
-    padding: 8px;
-    color: var(--text-color);
-}
-
-.modify-option {
-    color: rgb(45, 34, 34);
-}
-
-.error-message {
-    color: #dc3545;
-    font-size: 0.875rem;
-}
-
-.input-time {
-    max-width: 75px;
-    height: auto;
+@media (max-width: 767.98px) {
+    .student-info {
+        margin-bottom: 2rem;
+    }
 }
 </style>

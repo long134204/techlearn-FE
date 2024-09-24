@@ -2,8 +2,8 @@
   <div class="relative">
 
     <ejs-schedule height="750px" width="100%" ref='scheduleObj' :selectedDate="selectedDate" :eventSettings="eventSettings"
-      :actionBegin="onActionBegin" class="calendar" :editorTemplate="'editorTemplate'" :eventRendered="onEventRendered" :startHour="startHour"
-      :endHour="endHour">
+      :actionBegin="onActionBegin" class="calendar" :editorTemplate="'editorTemplate'" :eventRendered="onEventRendered" :popupOpen="popupOpen"
+      :startHour="startHour" :endHour="endHour">
       <template v-slot:editorTemplate>
         <table class="custom-event-editor" width="100%" cellpadding="5">
           <tbody>
@@ -85,9 +85,13 @@ import frGregorian from '@syncfusion/ej2-cldr-data/main/vi/ca-gregorian.json';
 import frNumberingSystem from '@syncfusion/ej2-cldr-data/supplemental/numberingSystems.json';
 import Loading from 'vue-loading-overlay';
 import 'vue-loading-overlay/dist/css/index.css';
+import { useStore } from "vuex";
+import { computed } from "vue";
+
+axios.defaults.batch = false;
+
 const rootApi = process.env.VUE_APP_ROOT_API;
 
-// const props = defineProps(['url', 'id']);
 const props = defineProps({
   url: {
     type: String,
@@ -96,6 +100,10 @@ const props = defineProps({
   id: {
     type: String,
     required: false
+  },
+  calendarType: {
+    type: String,
+    required: true
   }
 });
 
@@ -109,7 +117,6 @@ provide("schedule", [Day, Week, WorkWeek, Month, Agenda, DragAndDrop]);
 const accessToken = localStorage.getItem("accessToken");
 
 const remoteData = new DataManager({
-
   url: `${props.url}`,
   adaptor: new WebApiAdaptor,
   crossDomain: true,
@@ -124,6 +131,9 @@ const eventSettings = ref({
   dataSource: remoteData
 });
 
+const store = useStore();
+const user = computed(() => store.getters.user);
+
 const startHour = "08:00";
 const endHour = "21:00";
 
@@ -134,7 +144,7 @@ const dropListFields = {
 
 const getOwnerDataSource = async () => {
 
-  const res = await axios.get("http://localhost:8181/api/v1/teachers/", {
+  const res = await axios.get(`${rootApi}/teachers/`, {
     headers: {
       'Authorization': `Bearer ${accessToken}`
 
@@ -142,7 +152,6 @@ const getOwnerDataSource = async () => {
   });
   ownerDataSource.value = res.data;
 }
-
 
 const getEvent = async () => {
   try {
@@ -209,7 +218,26 @@ const onActionBegin = async (args) => {
         EndTimezone: 'Asia/Bangkok',
       };
 
-      if (props.url.includes('teacher')) {
+      if (window.location.href.includes('student')) {
+        await axios.post(`${rootApi}/student/${user.value.id}/calendar`,
+          {
+            ...formattedEventData,
+            UserId: user.value.id,
+            status: "BOOKED",
+            OwnerId: '5bb75f1d-7956-11ef-8bc5-005056c00001' // để tạm, sẽ được lấy theo id teacher được chọn
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`
+            }
+          }
+        );
+
+        toast.success('Đặt lịch thành công! Vui lòng kiểm tra gmail để xem chi tiết');
+
+        return;
+      }
+      else if (props.url.includes('teacher')) {
         await axios.post(`${props.url}`, {
           ...formattedEventData,
           status: "BUSY"
@@ -220,10 +248,7 @@ const onActionBegin = async (args) => {
         });
 
         toast.success('Cập nhật lịch thành công!');
-      } else if (props.url.includes('student')) {
-        // TODO
       }
-
     } catch (error) {
       toast.error('Cập nhật lịch thất bại!');
     }
@@ -247,39 +272,14 @@ const onActionBegin = async (args) => {
         StartTime: formatDate(args.data.StartTime),
         EndTime: formatDate(args.data.EndTime),
       };
-
-      const isStudentBooking = window.location.href.includes('student');
-      // if(prop.url.includes('student'))
-      if (isStudentBooking) {
-        isLoading.value = true;
-        formattedEventData = {
-          ...formattedEventData,
-          UserId: userInfor.value.id,
-          CourseId: "1",
-          ChapterId: "1",
-          status: "BOOKED"
-        };
-        isLoading.value = true;
-        setTimeout(() => {
-          isLoading.value = false
-        }, 5000)
-        await axios.put(`${props.url}/student-calendar/${formattedEventData.Id}`, formattedEventData, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-        toast.success('Đặt lịch thành công!Vui lòng kiểm tra gmail để xem chi tiết');
-      } else {
-
-        await axios.put(`${props.url}/${formattedEventData.Id}`, formattedEventData, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-        toast.success('Cập nhật lịch thành công!');
-      }
+      await axios.put(`${props.url}/${formattedEventData.Id}`, formattedEventData, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      toast.success('Xóa lịch thành công!');
     } catch (error) {
-      toast.error('Cập nhật lịch thất bại!');
+      toast.error('Xóa lịch thất bại!');
     } finally {
       isLoading.value = false;
     }
@@ -312,6 +312,43 @@ watch(() => props.id, (newId) => {
     };
   }
 });
+
+watch(() => props.url, (newUrl) => {
+  eventSettings.value = {
+    dataSource: new DataManager({
+      url: newUrl,
+      adaptor: new WebApiAdaptor(),
+      crossDomain: true,
+      headers: [{
+        Authorization: `Bearer ${accessToken}`
+      }]
+    })
+  };
+});
+
+const popupOpen = function (args) {
+  const isOtherType = props.calendarType === 'other';
+  const isMineTypeAndStudent = props.calendarType === 'mine' && window.location.href.includes('student');
+  const isStudentBooking = window.location.href.includes('student') && props.calendarType === 'other';
+
+  if (args.type === 'QuickInfo') {
+    if (isOtherType) {
+      args.cancel = false;
+    } else if (isMineTypeAndStudent) {
+      const scheduleObj = this;
+      const hasEvents = scheduleObj.getEvents(args.data.StartTime, args.data.EndTime).length > 0;
+      if (!hasEvents) {
+        args.cancel = true;
+      }
+    }
+  } else if (args.type === 'Editor') {
+    if (isStudentBooking) {
+      args.cancel = false;
+    } else {
+      args.cancel = true;
+    }
+  }
+}
 
 </script>
 
