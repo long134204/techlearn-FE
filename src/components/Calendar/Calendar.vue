@@ -261,7 +261,6 @@ const onActionBegin = async (args) => {
         await axios.post(`${rootApi}/student/${user.value.id}/calendar`, {
           ...formattedEventData,
           UserId: user.value.id,
-          status: "BOOKED",
           OwnerId: props.ownerId
         }, {
           headers: {
@@ -425,7 +424,11 @@ watch(() => props.url, (newUrl) => {
 });
 
 const popupOpen = function (args) {
-
+  console.log(props.clickable);
+  console.log(props.calendarType);
+  console.log(window.location.href);
+  console.log(props.url);
+  
   if (!props.clickable && props.calendarType !== 'mine') {
     args.cancel = true;
 
@@ -434,7 +437,7 @@ const popupOpen = function (args) {
 
   const isOtherType = props.calendarType === 'other';
   const isOtherTypeAndTeacher = props.calendarType === 'other' && props.url.includes('teacher');
-  const isMineTypeAndStudent = props.calendarType === 'mine' && window.location.href.includes('student');
+  const isMineTypeAndStudent = props.calendarType === 'mine' && props.url.includes('student');
   const isMineAndTeacher = props.calendarType === 'mine' && props.url.includes('teacher');
   const isStudentBooking = window.location.href.includes('student') && props.calendarType === 'other';
 
@@ -472,7 +475,7 @@ const popupOpen = function (args) {
       }
     }
   } else if (args.type === 'Editor') {
-    if (isStudentBooking) {
+    if (isOtherTypeAndTeacher) {
       const scheduleObj = this;
       const hasEvents = scheduleObj.getEvents(args.data.StartTime, args.data.EndTime).length > 0;
 

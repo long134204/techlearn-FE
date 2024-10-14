@@ -4,9 +4,9 @@
       <b-tab title="Lịch bận" active>
         <Calendar v-if="url" :url="url" :key="url" :ownerId="user.id" calendarType="mine" clickable="true" />
       </b-tab>
-      <b-tab title="Lịch rảnh">
+      <!-- <b-tab title="Lịch rảnh">
         <Calendar v-if="url" :url="url" :key="url" calendarType="mine" clickable="true" />
-      </b-tab>
+      </b-tab> -->
     </b-tabs>
   </div>
 

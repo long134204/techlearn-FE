@@ -1,6 +1,7 @@
 <template>
   <div class="container-fluid ">
     <div class="assignment-container" v-if="assignmentDescription">
+      <h4>{{ assignmentDescription.title }}</h4>
       <div class="assignment-description">
         <div ref="description" class="description-text" v-html="format(assignmentDescription.content)"></div>
       </div>
@@ -22,7 +23,8 @@
         <div class="submit-container">
           <p>Nộp bài tập:</p>
           <div class="input-container mt-3">
-            <input type="text" placeholder="Thêm link github tại đây" v-model="githubLink" required/>
+            <input v-on:change="validInputLink()" type="text" placeholder="Thêm link github tại đây"
+              v-model="githubLink" required />
             <button @click="submitAssignment" :disabled="isLoading || isPassed"
               :class="{ 'button-disabled': isPassed }">
               <span v-if="isLoading">
@@ -31,11 +33,13 @@
               <span v-else>Nộp bài</span>
             </button>
           </div>
+          <span class="text-danger">{{ errorgithubLink }}</span>
+
         </div>
         <div class="result-container mt-3">
           <div class="result-header">
             <p>Kết quả:</p>
-            <button @click="openModal">Xem lịch sử nộp bài</button>
+            <button @click="openModal" class="m-0">Xem lịch sử nộp bài</button>
           </div>
           <div v-if="lastResult" class="result-AI-container">
             <div class="time-container">
@@ -95,6 +99,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
+import { toast } from "vue3-toastify";
 
 const route = useRoute();
 const router = useRouter();
@@ -102,6 +107,7 @@ const store = useStore();
 
 const assignmentDescription = ref(null);
 const githubLink = ref("");
+var errorgithubLink = ref("");
 var result = ref([]);
 const isLoading = ref(false);
 const rootApi = process.env.VUE_APP_ROOT_API;
@@ -109,18 +115,38 @@ const description = ref(null);
 const lastResult = ref();
 const userID = computed(() => store.getters.user);
 const assignmentId = route.params.id;
-const courseId = route.query.courseId;
 const isPassed = ref(false);
 const active = ref(false);
 const studentCourse = reactive({});
+const errorCode = {
+  1301: "Link github được để trống",
+  1302: "Link github không được tìm thấy hoặc không đúng định dạng",
+  1303: "Lỗi khi gọi API Github",
+  1901: "Vượt quá số lượng file cho phép đọc",
+}
+
+function validInputLink() {
+  if (githubLink.value == "") {
+    errorgithubLink.value = "Vui lòng nhập link github bài tập !"
+    return false
+  } else if (!githubLink.value.startsWith("https://github.com")) {
+    errorgithubLink.value = "Vui lòng đúng định dạng link github bài tập !"
+    return false
+  }
+  errorgithubLink.value = ""
+  return true;
+}
 
 const openModal = async () => {
   const modal = new bootstrap.Modal(document.getElementById("historyModal"));
   modal.show();
   result.value.splice(0, result.value.length);
   try {
+    console.log(userID.value.id);
+    console.log(assignmentId);
+
     const response = await axios.get(
-      `${rootApi}/reviews?id=${userID.value}&assignment=${assignmentId}&pageSize=30`
+      `${rootApi}/reviews?id=${userID.value.id}&assignment=${assignmentId}&pageSize=30`
     );
     response.data.result.items.map((rev, index) => {
 
@@ -135,7 +161,7 @@ const fetchLastResult = async () => {
       `${rootApi}/reviews/${assignmentId}?id=${userID.value.id}`
     );
     lastResult.value = response.data.result;
-    isPassed.value = response.data.result.status === "Pass" ? true : false;
+    isPassed.value = response.data.result.status === "PASS" ? true : false;
   } catch (error) { }
 };
 
@@ -145,12 +171,17 @@ const fetchAssignments = async () => {
       `${rootApi}/lessons/${assignmentId}`
     );
     assignmentDescription.value = response.data.result.data;
+    console.log(assignmentDescription.value);
+
   } catch (error) {
     console.error("Lỗi khi lấy dữ liệu:", error);
   }
 };
 
 const submitAssignment = async () => {
+  if (!validInputLink()) {
+    return false;
+  }
   try {
     isLoading.value = true;
     const response = await axios.post(
@@ -164,10 +195,17 @@ const submitAssignment = async () => {
     );
     const data = response.data;
     await fetchLastResult();
-    isPassed.value = data.result.status === "Pass" ? true : false;
     isLoading.value = false;
+    console.log(isPassed.value);
+    console.log(data);
+
+
   } catch (error) {
-    console.log(error);
+    console.log(error.response.data.message);
+    isLoading.value = false;
+    toast.error(errorCode[error.response.data.code], {
+      autoClose: 2000,
+    });
   }
 };
 
@@ -199,26 +237,14 @@ const viewSolution = () => {
 
 const isStatus = computed(() => studentCourse.status === 'TRIAL' || studentCourse.status === 'PAID');
 
-const fetchStudentCourses = async () => {
-  try {
-    const response = await axios.get(
-      `${rootApi}/student-courses/user`, {
-      params: {
-        idCourse: courseId,
-        idUser: userID.value.id
-      }
-    }
-    );
-    Object.assign(studentCourse, response.data.result);
-  } catch (error) {
-    console.error("Error when fetching student courses: ", error);
-  }
-};
-
 onMounted(async () => {
   await fetchAssignments();
   await fetchLastResult();
-  await fetchStudentCourses();
+  if (route.query.studentCourse) {
+    Object.assign(studentCourse, JSON.parse(route.query.studentCourse)); 
+    console.log("StudentCourse:", studentCourse);
+    console.log("Status:", studentCourse.status);
+  }
 });
 </script>
 
@@ -236,7 +262,7 @@ onMounted(async () => {
 
 .description-text {
   font-size: 17px;
-  margin-left: 12px;
+  /* margin-left: 12px; */
   font-family: Avenir, Helvetica, Arial, sans-serif;
   margin-top: 15px;
   margin-bottom: 20px;
@@ -271,8 +297,8 @@ onMounted(async () => {
   border-radius: 10px;
   display: flex;
   justify-content: space-between;
-  margin-right: 30px;
-  margin-left: 15px;
+  /* margin-right: 30px;
+  margin-left: 15px; */
 }
 
 .input-container input {

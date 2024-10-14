@@ -13,6 +13,11 @@
   <title>
     <%= htmlWebpackPlugin.options.title %>
   </title>
+  <style>
+    div[style*="position: fixed"][style*="top: 10px"][style*="z-index: 999999999"] {
+      display: none !important;
+    }
+  </style>
 </head>
 
 <body>

@@ -1,5 +1,6 @@
 import { createStore } from "vuex";
 import axios from "axios";
+import createPersistedState from "vuex-persistedstate";
 
 const rootApi = process.env.VUE_APP_ROOT_API;
 
@@ -68,6 +69,7 @@ const store = createStore({
     isLoggedIn: (state) => state.isLoggedIn,
     supportPoints: (state) => state.supportPoints,
   },
+  plugins: [createPersistedState()],
 });
 
 export default store;

@@ -27,8 +27,8 @@
                 name: 'studentCalendar',
                 params: { courseId: courseId }
               })
-            ">
-            Đặt lịch học
+              ">
+              Đặt lịch học
             </button>
           </div>
           <button class="search-btn btn btn-primary d-lg-none ml-2" @click="fetchFilteredData">
